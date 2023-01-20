@@ -1,0 +1,4 @@
+build/
+examples/laminar/barn3d/barn3d3d
+examples/**/*.o
+examples/**/*.d
