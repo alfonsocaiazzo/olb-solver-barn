@@ -59,9 +59,9 @@ typedef D3Q19<> DESCRIPTOR;
 
 
 // Parameters for the simulation setup
-const int N = 10;        // resolution of the model
+const int N = 5;        // resolution of the model
 const T Re = 20.;       // Reynolds number
-const T maxPhysT = 16.; // max. simulation time in s, SI unit
+const T maxPhysT = 200.; // max. simulation time in s, SI unit
 
 // Stores data from stl file in geometry in form of material numbers
 void prepareGeometry( UnitConverter<T,DESCRIPTOR> const& converter, IndicatorF3D<T>& indicator,
@@ -71,85 +71,67 @@ void prepareGeometry( UnitConverter<T,DESCRIPTOR> const& converter, IndicatorF3D
   OstreamManager clout( std::cout,"prepareGeometry" );
   clout << "Prepare Geometry ..." << std::endl;
 
+  // set material number 0 -> 2 for whole geometry (indicator)
   superGeometry.rename( 0,2,indicator );
+  // set material number 2 -> 1 for the flow (this should set 1 for all noodes outside or on the mesh)
   superGeometry.rename( 2,1,stlReader );
   superGeometry.clean();
-
-  /*
   double lattice_length = converter.getConversionFactorLength();
+  Vector<T,3> gMin = superGeometry.getStatistics().getMinPhysR( 2 );
+  Vector<T,3> gMax = superGeometry.getStatistics().getMaxPhysR( 2 );
+  
+  
+
+  // get origin and dimension of the cube-domain (region 2: whole region)
   Vector<T,3> origin = superGeometry.getStatistics().getMinPhysR( 2 );
   Vector<T,3> extend = superGeometry.getStatistics().getMaxPhysR( 2 );
-
-  // Set material number for outflow
-  Vector<T,3> origin_outflow,extend_outflow;
-  origin_outflow[0] = origin[0] - lattice_length/2.;
-  origin_outflow[1] = origin[1] - lattice_length/2.;
-  origin_outflow[2] = origin[2] - lattice_length;
-  
-  extend_outflow[0] = extend[0]-origin[0]-lattice_length/2.;
-  extend_outflow[1] = extend[1]-origin[1]-lattice_length/2.;
-  extend_outflow[2] = 2*lattice_length;
+  clout << " origin: " << origin[0] << " " << origin[1] << " " << origin[2]<< std::endl;
+  clout << " extend: " << extend[0] << " " << extend[1] << " " << extend[2]<< std::endl;
   
   // Set material number for inflow
-  //origin[2] = superGeometry.getStatistics().getMinPhysR( 2 )[2]-converter.getConversionFactorLength();
-  //extend[2] = 2*converter.getConversionFactorLength();
-  clout << " outflow - origin: " << origin_outflow[0] << " " << origin_outflow[1] << " " << origin_outflow[2] << std::endl;
-  clout << " outflow - dimensions: " << extend_outflow[0] << " " << extend_outflow[1] << " " << extend_outflow[2] << std::endl;
-  IndicatorCuboid3D<T> outflow( extend_outflow,origin_outflow );
-  superGeometry.rename( 2,4,outflow );
-
-
-  Vector<T,3> origin_inflow,extend_inflow;
-  origin_inflow[0] = origin[0] - lattice_length/2.;
-  origin_inflow[1] = origin[1] - lattice_length/2.;  
-  origin_inflow[2] = extend[2]-converter.getConversionFactorLength();
-  extend_inflow[0] = extend[0]-origin[0]-lattice_length/2.;
-  extend_inflow[1] = extend[1]-origin[1]-lattice_length/2.;
-  extend_inflow[2] = 2*lattice_length;
-  clout << " inflow - origin: " << origin_inflow[0] << " " << origin_inflow[1] << " " << origin_inflow[2] << std::endl;
-  clout << " inflow - dimensions: " << extend_inflow[0] << " " << extend_inflow[1] << " " << extend_inflow[2] << std::endl;
+  // origin (0,0,4)
+  // incoming normal: (0,0,1)
+  // inflow origin_i:  origin_i + dx*(normal,e_i) for the normal direction
+  // inflow origin_i:  origin_i + dx/2 for the other directions
+  origin[0] = superGeometry.getStatistics().getMinPhysR( 2 )[0] + lattice_length/2.;
+  origin[1] = superGeometry.getStatistics().getMinPhysR( 2 )[1] + lattice_length/2.;
+  origin[2] = superGeometry.getStatistics().getMaxPhysR( 2 )[2] - lattice_length;
   
-  IndicatorCuboid3D<T> inflow( extend_inflow,origin_inflow );
-  superGeometry.rename( 2,3,inflow );
-  */
+  extend[0] = gMax[0] - gMin[0] - lattice_length;
+  extend[1] = gMax[1] - gMin[1] - lattice_length;
+  extend[2] = 2*lattice_length; // 2*dx*(normal,e_i)
   
-
-
-  
-  
-  // Set material number for cylinder
-  /*origin[0] = superGeometry.getStatistics().getMinPhysR( 2 )[0]+converter.getConversionFactorLength();
-  extend[0] = ( superGeometry.getStatistics().getMaxPhysR( 2 )[0]-superGeometry.getStatistics().getMinPhysR( 2 )[0] )/2.;
-  IndicatorCuboid3D<T> cylinder( extend,origin );
-  superGeometry.rename( 2,5,cylinder );
-  */
-
-  Vector<T,3> origin = superGeometry.getStatistics().getMinPhysR( 2 );
-  origin[1] += converter.getConversionFactorLength()/2.;
-  origin[2] += converter.getConversionFactorLength()/2.;
-
-  Vector<T,3> extend = superGeometry.getStatistics().getMaxPhysR( 2 );
-  extend[1] = extend[1]-origin[1]-converter.getConversionFactorLength()/2.;
-  extend[2] = extend[2]-origin[2]-converter.getConversionFactorLength()/2.;
-
-  // Set material number for inflow
-  origin[0] = superGeometry.getStatistics().getMinPhysR( 2 )[0]-converter.getConversionFactorLength();
-  extend[0] = 2*converter.getConversionFactorLength();
+  clout << " (inflow) origin: " << origin[0] << " " << origin[1] << " " << origin[2]<< std::endl;
+  clout << " (inflow) extend: " << extend[0] << " " << extend[1] << " " << extend[2]<< std::endl;
   IndicatorCuboid3D<T> inflow( extend,origin );
+  // rename fluid nodes (2) as inflow (3)
   superGeometry.rename( 2,3,inflow );
 
+
+
+
   // Set material number for outflow
-  origin[0] = superGeometry.getStatistics().getMaxPhysR( 2 )[0]-converter.getConversionFactorLength();
-  extend[0] = 2*converter.getConversionFactorLength();
+  origin[0] = superGeometry.getStatistics().getMinPhysR( 2 )[0] + lattice_length/2.;
+  origin[1] = superGeometry.getStatistics().getMinPhysR( 2 )[1] + lattice_length/2.;
+  origin[2] = superGeometry.getStatistics().getMinPhysR( 2 )[2] - lattice_length;
+  
+  extend[0] = gMax[0] - gMin[0] - lattice_length;
+  extend[1] = gMax[1] - gMin[1] - lattice_length;
+  extend[2] = 2*lattice_length;
+  clout << " (outflow) origin: " << origin[0] << " " << origin[1] << " " << origin[2]<< std::endl;
+  clout << " (outflow) extend: " << extend[0] << " " << extend[1] << " " << extend[2]<< std::endl;
+  
   IndicatorCuboid3D<T> outflow( extend,origin );
   superGeometry.rename( 2,4,outflow );
 
-  // Set material number for cylinder
-  origin[0] = superGeometry.getStatistics().getMinPhysR( 2 )[0]+converter.getConversionFactorLength();
-  extend[0] = ( superGeometry.getStatistics().getMaxPhysR( 2 )[0]-superGeometry.getStatistics().getMinPhysR( 2 )[0] )/2.;
-  IndicatorCuboid3D<T> cylinder( extend,origin );
-  superGeometry.rename( 2,5,cylinder );
-
+  // Set material number for barn: we look for it from the mid domain until the end (z=2,5 --> z=4)
+  origin[2] = gMin[2] + ( gMax[2] - gMin[2] )/2.;
+  extend[2] = ( gMax[2] - gMin[2] )/2.;
+  clout << " (barn) origin: " << origin[0] << " " << origin[1] << " " << origin[2]<< std::endl;
+  clout << " (barn) extend: " << extend[0] << " " << extend[1] << " " << extend[2]<< std::endl;
+  IndicatorCuboid3D<T> barn( extend,origin );
+  superGeometry.rename( 2,5,barn );
+  
   
   // Removes all not needed boundary voxels outside the surface
   superGeometry.clean();
@@ -239,7 +221,9 @@ void setBoundaryValues( SuperLattice3D<T, DESCRIPTOR>& sLattice,
     T frac[1] = {};
     StartScale( frac,iTvec );
     std::vector<T> maxVelocity( 3,0 );
-    maxVelocity[0] = 2.25*frac[0]*converter.getCharLatticeVelocity();
+    maxVelocity[0] = 0;
+    maxVelocity[1] = 0;
+    maxVelocity[2] = -2.25*frac[0]*converter.getCharLatticeVelocity();
 
     T distance2Wall = converter.getConversionFactorLength()/2.;
     RectanglePoiseuille3D<T> poiseuilleU( superGeometry, 3, maxVelocity, distance2Wall, distance2Wall, distance2Wall );
@@ -384,6 +368,7 @@ int main( int argc, char* argv[] )
   // Instantiation of the STLreader class
   // file name, voxel size in meter, stl unit in meter, outer voxel no., inner voxel no.
   STLreader<T> stlReader( "barn_simple_mesh.stl", converter.getConversionFactorLength(),0.001,0,true);
+  //STLreader<T> stlReader( "cylinder3d.stl", converter.getConversionFactorLength(),0.001,0,true);
   stlReader.print();
   IndicatorLayer3D<T> extendedDomain( stlReader, converter.getConversionFactorLength() );
   clout << converter.getConversionFactorLength() << std::endl;

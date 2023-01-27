@@ -74,18 +74,23 @@ void prepareGeometry( UnitConverter<T,DESCRIPTOR> const& converter, IndicatorF3D
   superGeometry.rename( 0,2,indicator );
   superGeometry.rename( 2,1,stlReader );
   superGeometry.clean();
-
+  clout << "converter.getConversionFactorLength(): " << converter.getConversionFactorLength() << endl;
   Vector<T,3> origin = superGeometry.getStatistics().getMinPhysR( 2 );
+  clout << " origin: " << origin[0] << " " << origin[1] << " " << origin[2]<< std::endl;
   origin[1] += converter.getConversionFactorLength()/2.;
   origin[2] += converter.getConversionFactorLength()/2.;
-
+  
   Vector<T,3> extend = superGeometry.getStatistics().getMaxPhysR( 2 );
+  clout << " extend: " << extend[0] << " " << extend[1] << " " << extend[2]<< std::endl;
   extend[1] = extend[1]-origin[1]-converter.getConversionFactorLength()/2.;
   extend[2] = extend[2]-origin[2]-converter.getConversionFactorLength()/2.;
-
+  
+  
   // Set material number for inflow
   origin[0] = superGeometry.getStatistics().getMinPhysR( 2 )[0]-converter.getConversionFactorLength();
   extend[0] = 2*converter.getConversionFactorLength();
+  clout << " (inflow) origin: " << origin[0] << " " << origin[1] << " " << origin[2]<< std::endl;
+  clout << " (inflow) extend: " << extend[0] << " " << extend[1] << " " << extend[2]<< std::endl;
   IndicatorCuboid3D<T> inflow( extend,origin );
   superGeometry.rename( 2,3,inflow );
 
@@ -93,12 +98,16 @@ void prepareGeometry( UnitConverter<T,DESCRIPTOR> const& converter, IndicatorF3D
   origin[0] = superGeometry.getStatistics().getMaxPhysR( 2 )[0]-converter.getConversionFactorLength();
   extend[0] = 2*converter.getConversionFactorLength();
   IndicatorCuboid3D<T> outflow( extend,origin );
+  clout << " (outflow) origin: " << origin[0] << " " << origin[1] << " " << origin[2]<< std::endl;
+  clout << " (outflow) extend: " << extend[0] << " " << extend[1] << " " << extend[2]<< std::endl;
   superGeometry.rename( 2,4,outflow );
 
   // Set material number for cylinder
   origin[0] = superGeometry.getStatistics().getMinPhysR( 2 )[0]+converter.getConversionFactorLength();
   extend[0] = ( superGeometry.getStatistics().getMaxPhysR( 2 )[0]-superGeometry.getStatistics().getMinPhysR( 2 )[0] )/2.;
   IndicatorCuboid3D<T> cylinder( extend,origin );
+  clout << " (cylinder) origin: " << origin[0] << " " << origin[1] << " " << origin[2]<< std::endl;
+  clout << " (cylinder) extend: " << extend[0] << " " << extend[1] << " " << extend[2]<< std::endl;
   superGeometry.rename( 2,5,cylinder );
 
   // Removes all not needed boundary voxels outside the surface
@@ -334,6 +343,7 @@ int main( int argc, char* argv[] )
   // Instantiation of the STLreader class
   // file name, voxel size in meter, stl unit in meter, outer voxel no., inner voxel no.
   STLreader<T> stlReader( "cylinder3d.stl", converter.getConversionFactorLength(), 0.001 );
+  stlReader.print();
   IndicatorLayer3D<T> extendedDomain( stlReader, converter.getConversionFactorLength() );
 
   // Instantiation of a cuboidGeometry with weights
